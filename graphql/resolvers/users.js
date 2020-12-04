@@ -1,8 +1,11 @@
-const User = require("../../models/User");
+const { UserInputError } = require("apollo-server");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
+
+const User = require("../../models/User");
 const { JWT_AUTH_SECRET } = require("../../config");
-const { UserInputError } = require("apollo-server");
+const { validateRegisterInput } = require("../../utils/validators");
+
 
 module.exports = {
   Mutation: {
@@ -10,8 +13,9 @@ module.exports = {
       const { registerInput: { email, username, password, confirmPassword } } = args;
       // validate user data
       // check for existing user
-      if(password !== confirmPassword){
-        throw new Error("Passwords don't match!");
+      const { valid, errors } = validateRegisterInput(username, email, password, confirmPassword);
+      if(!valid){
+        throw new UserInputError("Errors", { errors });
       }
       try {
         const user = await User.findOne({ username });
