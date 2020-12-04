@@ -4,8 +4,15 @@ const jwt = require("jsonwebtoken");
 
 const User = require("../../models/User");
 const { JWT_AUTH_SECRET } = require("../../config");
-const { validateRegisterInput } = require("../../utils/validators");
+const { validateRegisterInput, validateLoginInput } = require("../../utils/validators");
 
+const generateAuthToken = (user) => {
+  const payload = { userId: user._id, email: user.email, username: user.username }
+  const token = jwt.sign(payload, JWT_AUTH_SECRET, {
+    expiresIn: '1d'
+  });
+  return token;
+}
 
 module.exports = {
   Mutation: {
@@ -34,10 +41,7 @@ module.exports = {
           createdAt: new Date().toISOString()
         });
         const res = await newUser.save();
-        const payload = { userId: res._id, email: res.email, username: res.username }
-        const token = jwt.sign(payload, JWT_AUTH_SECRET, {
-          expiresIn: '1d'
-        });
+        const token = generateAuthToken(res);
         return {
           ...res._doc,
           id: res._id,
@@ -46,6 +50,33 @@ module.exports = {
       } catch (err) {
         console.log(err); 
         return err;
+      }
+    },
+    login: async (_, args) => {
+      const { username, password } = args;
+      const { errors, valid } = validateLoginInput(username, password);
+      if(!valid){
+        throw new UserInputError("Errors", { errors });
+      }
+      try {
+        const user = await User.findOne({ username });
+        if(!user){
+          errors.general = "User not Found!";
+          throw new UserInputError("User not Found", { errors });
+        }
+        const match = await bcrypt.compare(password, user.password);
+        if(!match){
+          errors.general = "Wrong credentials!";
+          throw new UserInputError("Wrong credentials!", { errors });
+        }
+        const token = generateAuthToken(user);
+        return {
+          ...user._doc,
+          id: user._id,
+          token
+        }
+      } catch (err) {
+        throw err;
       }
     }
   },
