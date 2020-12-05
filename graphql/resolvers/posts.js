@@ -15,7 +15,7 @@ module.exports = {
     getPost: async (_, args) => {
       const { postId } = args;
       try {
-        const post = await Post.findById(postId);
+        const post = await Post.findById(postId).sort('-createdAt');
         if(!post){
           throw new Error('Post not Found');
         }
