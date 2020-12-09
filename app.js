@@ -18,8 +18,9 @@ mongoose.connect(MONGO_URL, {
     useUnifiedTopology: true,
     useCreateIndex: true
 }).then(conn => {
+    const PORT = process.env.PORT || 8000;
     console.log(`😍 DB CONNECTED AT ${conn.connection.port}`);
-    server.listen(8000).then(({ url }) => {
+    server.listen(PORT).then(({ url }) => {
         console.log(`🚀 Server ready at ${url}`);
     });
 }).catch(err => {
